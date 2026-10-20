@@ -1,0 +1,73 @@
+SAHAYAK update of the supplied SAHAYAK-local-demo.zip
+Original repository inspected: 44 files. No original file removed.
+
+ADDED (11):
+PROCESS_RESULTS.txt
+RELEASE_CHECK_RESULTS.txt
+sahayak/alerts.py
+sahayak/callbacks.py
+sahayak/messages.py
+sahayak/providers.py
+sahayak/replies.py
+tests/fixtures/original_schema.sql
+tests/test_e2e_workflow.py
+tests/test_mocked_twilio_journey.py
+tests/test_workflow_edges.py
+
+MODIFIED (26):
+.env.example
+BROWSER_RESULTS.txt
+FILES.txt
+README.md
+TEST_RESULTS.txt
+VERIFICATION.md
+run_demo.bat
+sahayak/__init__.py
+sahayak/db.py
+sahayak/seed.py
+sahayak/services.py
+sahayak/static/app.css
+sahayak/templates/alerts.html
+sahayak/templates/dashboard.html
+sahayak/templates/demo.html
+sahayak/templates/macros.html
+sahayak/templates/messages.html
+sahayak/templates/patient_detail.html
+sahayak/templates/patient_form.html
+sahayak/templates/settings.html
+sahayak/validation.py
+sahayak/web.py
+sahayak/webhooks.py
+tests/conftest.py
+tests/test_care_engine.py
+tools/browser_smoke.py
+
+UNCHANGED (18):
+.gitignore
+app.py
+pytest.ini
+requirements.txt
+sahayak/static/app.js
+sahayak/templates/base.html
+sahayak/templates/error.html
+sahayak/templates/login.html
+sahayak/templates/medicine_form.html
+sahayak/templates/medicines.html
+sahayak/templates/patients.html
+sahayak/templates/prescriptions.html
+sahayak/templates/register.html
+sahayak/templates/reports.html
+tests/test_auth_patients_medicines.py
+tests/test_regressions.py
+tests/test_uploads_webhooks_reports.py
+tools/backup.py
+
+EXCLUDED from public release:
+.env, credentials, databases, uploads, instance/session secret, caches, virtual environments, browser QA artifacts and backups.
+
+NOTES:
+- requirements.txt is retained (no new runtime dependency).
+- The existing Flask/SQLite stack and working endpoint families are retained.
+- Schema migration is additive and tested against tests/fixtures/original_schema.sql (copied from this upload).
+- Legacy fixture test explicitly configures the new requested-delay policy rather than assuming it equals the automatic interval.
+- TEST_RESULTS/BROWSER_RESULTS/VERIFICATION replace old package claims with newly executed evidence.

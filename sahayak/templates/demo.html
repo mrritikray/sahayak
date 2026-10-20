@@ -1,0 +1,38 @@
+{% extends 'base.html' %}{% from 'macros.html' import heading,csrf,state,empty %}{% block content %}
+{{ heading('A SAFE PLACE TO TRY','Local demo simulator','No Twilio credentials. No real messages. Every action writes real records to your local database.') }}
+<div class="callout warning"><strong>SIMULATION ONLY.</strong> Practice events use fictional data and appear in reports. “Expire window” moves only a selected dose's deadline into the past — it does not change your computer's clock. Reload the dashboard to see updated counts.</div>
+<div class="grid two">
+<section class="card"><span class="eyebrow">01 · SEND A PRACTICE EVENT</span><h2>Try a reminder or check-in</h2>
+<form method="post">{{ csrf() }}
+<label>Patient<select name="patient_id" required>{% for p in patients %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select></label>
+<div class="actions">
+<button name="action" value="reminder" class="btn" {% if not patients %}disabled{% endif %}>Simulate medicine reminder</button>
+<button name="action" value="checkin" class="btn secondary" {% if not patients %}disabled{% endif %}>Simulate daily check-in</button>
+</div></form>
+<p class="muted">A medicine reminder creates one extra labelled practice dose for the first active schedule, sends it through the normal scheduling code, and stores it as SIMULATED.</p></section>
+<section class="card"><span class="eyebrow">02 · REPLY LIKE A PATIENT</span><h2>Record a simulated reply</h2>
+<form method="post">{{ csrf() }}<input type="hidden" name="action" value="reply">
+<label>Patient<select name="patient_id" required>{% for p in patients %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select></label>
+<label>Message<input name="body" maxlength="500" required placeholder="TAKEN D17"><small>Try TAKEN, NOT YET, REMIND ME LATER 30, or a nonsense reply to see safe handling. Use the D or C code from the lists below.</small></label>
+<button class="btn" {% if not patients %}disabled{% endif %}>Submit simulated reply →</button></form>
+<p class="muted">A plain reply works only when exactly one dose or check-in is waiting. Otherwise include the code.</p></section>
+</div>
+<div class="grid two">
+<section class="card"><span class="eyebrow">03 · TEST THE FULL LOOP</span><h2>Unconfirmed doses</h2>
+{% for d in doses %}<div class="feed-item"><div class="grow"><strong>D{{ d.id }} · {{ d.patient }}</strong><p>{{ d.medicine }} · {{ state(d.status) }}</p><small>{{ d.scheduled_at|localtime }} · {% if not d.notified_at %}not sent yet{% else %}reminder recorded, waiting for a reply{% endif %}</small>
+<form method="post" class="button-row">{{ csrf() }}<input type="hidden" name="patient_id" value="{{ d.patient_id }}"><input type="hidden" name="dose_id" value="{{ d.id }}">
+<button name="action" value="taken" class="btn small">TAKEN</button>
+<button name="action" value="not_yet" class="btn secondary small">NOT YET</button>
+<button name="action" value="later" class="btn secondary small">REMIND ME LATER</button>
+<button name="action" value="timeout" class="btn secondary small" {% if not d.notified_at %}disabled{% endif %}>Expire window → family alert</button>
+</form></div></div>
+{% else %}{{ empty('No unconfirmed doses','Create a practice reminder above, or add a medicine schedule.') }}{% endfor %}
+<form method="post" class="button-row">{{ csrf() }}<input type="hidden" name="action" value="failure">{% if doses %}<input type="hidden" name="patient_id" value="{{ doses[0].patient_id }}"><input type="hidden" name="dose_id" value="{{ doses[0].id }}">{% endif %}<button class="btn secondary small" {% if not doses %}disabled{% endif %}>Simulate a delivery failure</button></form>
+<p class="muted">“Expire window” runs the real scheduler rule with the deadline moved into the past: the dose becomes <strong>no reply</strong>, and the responsible family member's alert is created and simulated.</p></section>
+<section class="card"><h2>Sent daily check-ins</h2>
+{% for c in checkins %}<div class="feed-item"><div><strong>C{{ c.id }} · {{ c.patient }} · {{ c.local_date }}</strong><p>{{ state(c.response|lower if c.response else 'pending') }}</p><small>Try <code>BETTER C{{ c.id }}</code>, <code>SAME C{{ c.id }}</code>, <code>WORSE C{{ c.id }}</code> or <code>NEED HELP C{{ c.id }}</code>.</small></div></div>
+{% else %}{{ empty('No check-ins sent','Simulate today’s question above.') }}{% endfor %}
+<div class="callout">WORSE or NEED HELP creates a family alert. SAHAYAK is not a diagnosis or emergency-response service.</div></section>
+</div>
+<div class="actions"><a class="btn" href="{{ url_for('web.dashboard') }}">See dashboard updates →</a><a class="btn secondary" href="{{ url_for('web.messages') }}">View simulated message activity</a><a class="btn secondary" href="{{ url_for('web.alerts') }}">See family alerts</a></div>
+{% endblock %}

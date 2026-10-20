@@ -1,0 +1,12 @@
+Actual Waitress startup:
+SAHAYAK is available at http://127.0.0.1:5000
+Keep this terminal open. Use a second terminal for the scheduler (see README).
+
+Actual scheduler CLI (intentionally stopped after 3 seconds):
+SAHAYAK scheduler running. Ctrl+C stops it. Keep this terminal open.
+
+Intentional timeout exit: 124
+GET /health after worker beat: {"database":"reachable","demo_mode":true,"scheduler_recent":true,"status":"ok"}
+Python: 3.12.3
+Platform: Linux
+Pip check: No broken requirements found.

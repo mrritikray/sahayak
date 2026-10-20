@@ -1,0 +1,43 @@
+{% macro badge(value) %}<span class="badge {{ value|replace(' ','_') }}">{{ value|replace('_',' ') }}</span>{% endmacro %}
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
+{% macro empty(title,detail='') %}<div class="empty"><span aria-hidden="true">◈</span><h3>{{ title }}</h3><p>{{ detail }}</p></div>{% endmacro %}
+{% macro heading(kicker,title,description) %}<div class="page-heading"><div><div class="eyebrow">{{ kicker }}</div><h1>{{ title }}</h1><p>{{ description }}</p></div><div class="actions">{{ caller() if caller else '' }}</div></div>{% endmacro %}
+
+{# One dictionary of every state the app can show, so wording is identical everywhere. #}
+{% set STATUS_LABELS = {
+  'pending': ('scheduled', 'Reminder not sent yet'),
+  'awaiting_response': ('awaiting reply', 'Reminder sent, waiting for the patient reply'),
+  'reminder_requested': ('reminder requested', 'Patient asked to be reminded later'),
+  'unresolved': ('unresolved', 'Patient replied NOT YET, dose still open'),
+  'taken': ('taken', 'Patient-confirmed taken'),
+  'missed': ('no reply', 'No confirmation received within the response window'),
+  'not_taken': ('not taken', 'Family recorded that this dose was not taken'),
+  'demo': ('simulated', 'Simulated locally. No WhatsApp message was sent.'),
+  'local': ('in-app', 'Stored as an in-app notification'),
+  'whatsapp': ('whatsapp', 'Real WhatsApp request through Twilio'),
+  'queued': ('queued', 'Waiting to be sent'),
+  'sending': ('sending', 'Delivery in progress'),
+  'accepted': ('accepted', 'Twilio accepted the request. Delivery is not yet confirmed.'),
+  'simulated': ('simulated', 'Simulated locally, no WhatsApp delivery'),
+  'in_app': ('in-app', 'Recorded for the family in the app'),
+  'delivered': ('delivered', 'Provider confirmed delivery'),
+  'read': ('read', 'Provider reports the message was read'),
+  'failed': ('failed', 'Delivery failed'),
+  'unknown': ('uncertain', 'Delivery uncertain. Review required before resending.'),
+  'cancelled': ('cancelled', 'Cancelled before sending'),
+  'received': ('received', 'Patient reply received'),
+  'twiml_response': ('replied', 'Automatic reply returned to the patient'),
+  'acknowledged': ('acknowledged', 'A family member has seen this'),
+  'needs_attention': ('needs attention', 'Waiting for a family member') } %}
+
+{% macro state(value) %}{% set info = STATUS_LABELS.get(value, (value|replace('_',' '), value|replace('_',' '))) %}<span class="badge {{ value }}" title="{{ info[1] }}">{{ info[0] }}</span>{% endmacro %}
+
+{% macro dose_meaning(value) %}{{ STATUS_LABELS.get(value, ('', ''))[1] }}{% endmacro %}
+
+{% macro alert_card(a, ack_url='') %}<article class="alert-row"><div class="alert-icon" aria-hidden="true">!</div><div class="grow"><div class="section-line"><h3>{{ a.patient }} · {{ a.reason or (a.kind|replace('_',' ')|capitalize) }}</h3>{{ state('acknowledged' if a.acknowledged_at else ('resolved_by_confirmation' if a.resolved_at else 'needs_attention')) }}</div><p>{{ a.text }}</p><small>{{ a.created_at|localtime }}{% if a.notified_at %} · family notification: {{ a.delivered_status or 'queued' }}{% else %} · notification pending or failed — inspect message activity{% endif %}{% if a.acknowledged_at %} · acknowledged {{ a.acknowledged_at|localtime }}{% endif %}</small></div>{% if ack_url and not a.acknowledged_at %}<form method="post" action="{{ ack_url }}" data-confirm="Acknowledge that you have seen this alert? This does not mark the concern as resolved.">{{ csrf() }}<button class="btn secondary small">Acknowledge</button></form>{% endif %}</article>{% endmacro %}
+
+{% macro dose_table(doses) %}{% if doses %}<div class="table-wrap"><table><thead><tr><th>Patient / medicine</th><th>Scheduled</th><th>Response status</th><th>Recorded reply</th></tr></thead><tbody>{% for d in doses %}<tr><td><a href="{{ url_for('web.patient_detail',ident=d['patient_id']) }}">{{ d['patient'] }}</a><small>{{ d['medicine'] }}{% if d['is_demo'] %} · practice event{% endif %}</small><small>D{{ d['id'] }}</small></td><td>{{ d['scheduled_at']|localtime }}<small>{{ d['patient_timezone'] }}</small></td><td>{{ state(d['status']) }}<small>{{ 'Authorized family confirmation' if d['status']=='taken' and (d['source'] or '').startswith('family_user:') else dose_meaning(d['status']) }}</small></td><td>{{ d['response'] or 'No recorded reply' }}<small>{{ d['responded_at']|localtime }}</small><small>{{ d['source'] or 'Awaiting response' }}</small></td></tr>{% endfor %}</tbody></table></div>{% else %}{{ empty('No doses in this view','Add a reviewed medicine schedule to get started.') }}{% endif %}{% endmacro %}
+
+{% macro message_table(messages) %}<div class="table-wrap"><table><thead><tr><th>Time / interaction</th><th>Content</th><th>Channel</th><th>Status / delivery</th></tr></thead><tbody>{% for m in messages %}<tr><td>{{ m.created_at|localtime }}<small>{{ m.patient or 'Family' }} · {{ m.direction }} · {{ m.kind }}</small><small>Recipient: {{ m.recipient }}</small><small>Event #{{ m.id }} · attempts {{ m.attempts }}</small></td><td class="message-body">{{ m.body }}</td><td>{{ state(m.transport) }}</td><td>{{ state(m.status) }}<small>{{ m.delivery_status or 'No delivery confirmation' }}</small>{% if m.error_code %}<small class="error-text">{{ m.error_code }}</small>{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% endmacro %}
+
+{% macro trend_chart(trend) %}{% if trend %}<div class="chart-scroll"><svg class="trend-chart" viewBox="0 0 {{ [trend|length*78,546]|max }} 185" role="img" aria-label="Daily confirmed doses and scheduled doses. Numeric values are listed under each day."><line x1="12" y1="130" x2="{{ [trend|length*78,546]|max }}" y2="130" stroke="#e2e8ec"/>{% set maxval=namespace(value=1) %}{% for t in trend %}{% if t.total>maxval.value %}{% set maxval.value=t.total %}{% endif %}{% endfor %}{% for t in trend %}<g transform="translate({{ 24+loop.index0*78 }},0)"><rect x="0" y="{{ 130-t.total/maxval.value*102 }}" width="32" height="{{ t.total/maxval.value*102 }}" rx="5" fill="#dceeea"/><rect x="0" y="{{ 130-t.taken/maxval.value*102 }}" width="32" height="{{ t.taken/maxval.value*102 }}" rx="5" fill="#087f78"/><text x="16" y="153" text-anchor="middle" fill="#526575" font-size="11">{{ t.day }}</text><text x="16" y="173" text-anchor="middle" fill="#233949" font-size="11">{{ t.taken }}/{{ t.total }}</text></g>{% endfor %}</svg></div><div class="legend"><span>● Confirmed taken</span><span>○ All scheduled doses</span><small>Numbers show confirmed taken / scheduled. A missing reply does not establish whether the medicine was taken.</small></div>{% endif %}{% endmacro %}

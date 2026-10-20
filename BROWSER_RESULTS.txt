@@ -1,0 +1,9 @@
+PASS: real-browser sign-in and desktop dashboard
+PASS: patient and reviewed multi-dose medicine creation in browser
+PASS: simulated medicine reminder and missed-response family escalation
+PASS: late confirmation, concerning check-in and family acknowledgement
+PASS: CSV download through browser
+PASS: tablet responsive layout and navigation
+PASS: mobile responsive layout and navigation
+PASS: no browser JavaScript exceptions
+BROWSER SMOKE PASSED: all journey assertions completed; no real WhatsApp messages sent.

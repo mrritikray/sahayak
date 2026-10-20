@@ -1,0 +1,14 @@
+{% extends 'base.html' %}{% from 'macros.html' import heading,csrf %}{% block content %}
+{{ heading('PATIENT PROFILE','Edit patient' if patient else 'Add a patient','Each patient is linked to one responsible family contact. That contact receives the WhatsApp alert when a dose stays unconfirmed.') }}
+<section class="card form-card"><form method="post">{{ csrf() }}
+<div class="form-grid">
+<label>Patient name<input name="name" value="{{ form.get('name','') }}" required maxlength="120" autocomplete="off"></label>
+<label>Patient WhatsApp number<input name="phone" type="tel" value="{{ form.get('phone','') }}" required placeholder="+12025550104"><small>International format with + and country code. Use fictional numbers in the demo.</small></label>
+<label>Patient timezone<input name="timezone" value="{{ form.get('timezone','Asia/Kolkata') }}" list="zones" required><small>IANA name. Every reminder is scheduled in the patient's own local time.</small></label>
+<label>Responsible family member<input name="contact_name" value="{{ form.get('contact_name','') }}" required maxlength="120"><small>Who should be told if a dose is not confirmed?</small></label>
+<label>Family WhatsApp number<input type="tel" name="contact_phone" value="{{ form.get('contact_phone','') }}" required placeholder="+12025550103"><small>Family alerts for this patient go only to this number.</small></label>
+</div>
+<datalist id="zones"><option>Asia/Kolkata</option><option>Europe/London</option><option>America/New_York</option><option>America/Los_Angeles</option><option>Asia/Dubai</option><option>Australia/Sydney</option><option>UTC</option></datalist>
+<div class="callout">The family contact number is validated in the same way as the patient number, but number formatting alone cannot prove who owns a number; verify it with your family. If the contact number is left empty no alert can be delivered, so it is required.</div>
+<div class="actions"><button class="btn">Save patient</button><a class="btn secondary" href="{{ url_for('web.patients') }}">Cancel</a></div>
+</form></section>{% endblock %}

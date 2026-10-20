@@ -1,0 +1,13 @@
+{% extends 'base.html' %}{% from 'macros.html' import heading,state as status_badge,empty,message_table %}{% block content %}
+{{ heading('CHANNEL TRANSPARENCY','Message activity','Every outbound and inbound record. “Simulated” never left this computer. “Accepted” means Twilio accepted a request, not that WhatsApp delivered it.') }}
+<div class="callout">Failed or uncertain sends are not silently retried. Explicit rate-limit rejections retry up to 3 attempts with backoff. An uncertain send needs provider-log review, because automatic resending could duplicate a medicine reminder.
+{% if failures %} <strong>{{ failures }} record(s) currently need review</strong> — use the “Needs review” filter.{% endif %}</div>
+<section class="card"><form method="get" class="filter-row">
+<label>Patient<select name="patient_id"><option value="">All my patients</option>{% for p in patients %}<option value="{{ p.id }}" {% if pid==p.id|string %}selected{% endif %}>{{ p.name }}</option>{% endfor %}</select></label>
+<label>Status<select name="status"><option value="">Any status</option>{% for value in ['queued','simulated','in_app','accepted','failed'] %}<option value="{{ value }}" {% if state==value %}selected{% endif %}>{{ value }}</option>{% endfor %}</select></label>
+<label>From<input type="date" name="start" value="{{ start }}"></label>
+<label>To<input type="date" name="end" value="{{ end }}"></label>
+<button class="btn">Apply filters</button></form>
+<div class="actions"><a href="{{ url_for('web.messages', status='failed') }}">Needs review ↗</a><a href="{{ url_for('web.messages') }}">Reset</a></div></section>
+<section class="card">{% if messages %}{{ message_table(messages) }}{% else %}{{ empty('No messages in this view','Use the demo simulator or start the scheduler.') }}{% endif %}</section>
+<section class="card"><h2>Which channel is which?</h2><div class="health-row"><span>{{ status_badge('demo') }}</span><span>Nothing was sent. The record exists so the workflow can be demonstrated and tested.</span></div><div class="health-row"><span>{{ status_badge('local') }}</span><span>Stored for the family to read inside the app. No WhatsApp delivery.</span></div><div class="health-row"><span>{{ status_badge('whatsapp') }}</span><span>A real Twilio WhatsApp request. Delivery confirmation arrives in the fields above.</span></div></section>{% endblock %}

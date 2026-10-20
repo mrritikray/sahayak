@@ -1,0 +1,35 @@
+{% extends 'base.html' %}{% from 'macros.html' import heading,csrf,state %}{% block content %}
+{{ heading('YOUR CARE PREFERENCES','Settings & integration health','Reminder and escalation windows, the responsible family number, and what is real versus simulated.') }}
+<div class="grid two">
+<section class="card"><h2>Family & notification preferences</h2>
+<form method="post">{{ csrf() }}
+<label>Family coordinator name<input name="name" value="{{ form.get('name','') }}" required maxlength="120"></label>
+<label>Family notification phone (fallback)<input type="tel" name="family_phone" value="{{ form.get('family_phone','') }}" placeholder="+12025550103"><small>Used only for a patient who has no family contact number saved.</small></label>
+<label>Dashboard / reporting timezone<input name="timezone" value="{{ form.get('timezone','Asia/Kolkata') }}" required><small>Patient reminders use each patient's own profile timezone, not this setting.</small></label>
+<div class="form-grid">
+<label>Response window (minutes)<input name="response_minutes" type="number" min="5" max="1440" value="{{ form.get('response_minutes',60) }}" required><small>How long the patient has to reply after a reminder is sent.</small></label>
+<label>Family escalation window (minutes)<input name="escalation_minutes" type="number" min="0" max="1440" value="{{ form.get('escalation_minutes',0) }}" required><small>0 = alert the family as soon as the response window closes. Higher values wait before alerting.</small></label>
+<label>REMIND ME LATER default delay (minutes)<input name="reply_delay_minutes" type="number" min="5" max="240" value="{{ form.get('reply_delay_minutes',30) }}" required><small>Used when the patient does not type a delay.</small></label>
+<label>Daily check-in time<input name="checkin_time" type="time" value="{{ form.get('checkin_time','10:00') }}" required></label>
+<label>Follow-up interval (minutes)<input name="repeat_minutes" type="number" min="1" max="240" value="{{ form.get('repeat_minutes',15) }}" required></label>
+<label>Automatic follow-ups<input name="repeat_limit" type="number" min="0" max="3" value="{{ form.get('repeat_limit',1) }}" required></label>
+</div>
+<label>Family notification channel<select name="notifications"><option value="local" {% if form.get('notifications')=='local' %}selected{% endif %}>In-app notification (free local fallback)</option><option value="whatsapp" {% if form.get('notifications')=='whatsapp' %}selected{% endif %}>WhatsApp (requires Twilio configuration)</option></select></label>
+<label class="check"><input type="checkbox" name="alert_on_not_yet" value="1" {% if form.get('alert_on_not_yet') in (1,'1',True) %}checked{% endif %}> Alert the family immediately when the patient replies NOT YET<small>If unchecked, the patient's NOT YET reply stays open and the family is alerted only when the escalation window closes.</small></label>
+<label class="check"><input type="checkbox" name="missed_followup" value="1" {% if form.get('missed_followup') in (1,'1',True) %}checked{% endif %}> Send one follow-up reminder to the patient when the response window closes with no reply<small>This is the only reminder sent after the window closes. It never marks a dose as missed.</small></label>
+<div class="callout">In Demo Mode all delivery is simulated, regardless of this channel setting. Alert history is always stored. Response deadlines start when a message is simulated or accepted by Twilio, not on proof of delivery.</div>
+<button class="btn">Save settings</button>
+</form></section>
+<section>
+<div class="card"><h2>Application health</h2>
+<div class="health-row"><span>SQLite database</span>reachable</div>
+<div class="health-row"><span>Run mode</span>{{ state('demo' if demo else 'whatsapp') }}</div>
+<div class="health-row"><span>Scheduler heartbeat</span>{{ 'recent heartbeat' if worker_ok else 'not detected' }}</div>
+<div class="health-row"><span>Scheduler inside the web process</span>{{ state('delivered') if in_app else 'off (separate process)' }}</div>
+<div class="health-row"><span>Outbound WhatsApp configuration</span>{{ 'valid format (delivery not verified)' if configured else 'missing or invalid' }}</div>
+<div class="health-row"><span>HTTPS inbound/status webhooks</span>{{ 'configured (reachability not verified)' if webhook_configured else 'not configured; outbound can still work' }}</div>
+<p class="muted">Configuration is not proof of delivery. A real end-to-end WhatsApp test has not been performed by this package.</p>
+<p>Start the scheduler in a second terminal: <code>python -m flask --app app worker</code> — or run one beat from any page with “Run scheduler now”.</p>
+<a href="{{ url_for('web.messages') }}">Inspect delivery activity ↗</a></div>
+<div class="card soft"><h2>Safe configuration</h2><p>Put Twilio credentials in a local <code>.env</code> file. Never paste credentials into forms, commit them to Git, or include them in screenshots. Outbound messages do not require a public URL; inbound replies and delivery callbacks do.</p><p>Only authenticated Twilio signatures are accepted at <code>/webhooks/twilio</code>. Demo mode never bypasses signature verification.</p><p>Before going live, create a private family account, turn off Demo Mode, and use a new database. Do not expose the seeded demo account to the internet.</p><p>See the README for tunnel setup, Twilio Sandbox restrictions, backups and privacy limits.</p></div>
+</section></div>{% endblock %}

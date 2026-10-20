@@ -1,0 +1,13 @@
+{% extends 'base.html' %}{% from 'macros.html' import heading,csrf,alert_card,empty %}{% block content %}
+{% call heading('STAY IN THE LOOP','Family alerts','A missing reply is a reason to check in — not proof of an unconfirmed dose, and never a diagnosis.') %}<a class="btn secondary" href="{{ url_for('web.messages') }}">Notification delivery activity ↗</a>{% endcall %}
+<div class="callout warning">SAHAYAK is not an emergency-response service. If someone may be in immediate danger, contact local emergency services directly. Acknowledging an alert below means “I have seen this”, not “this is clinically resolved”.</div>
+{% set open_alerts = alerts|selectattr('acknowledged_at','none')|selectattr('resolved_at','none')|list %}
+{% set closed_alerts = alerts|rejectattr('id','in', open_alerts|map(attribute='id')|list)|list %}
+<section class="card"><div class="card-head"><div><h2>Unresolved alerts</h2><p>{{ open_alerts|length }} waiting for a family member</p></div></div>
+{% for a in open_alerts %}{{ alert_card(a, url_for('web.acknowledge', ident=a.id)) }}{% else %}{{ empty('No unresolved alerts','Late replies, NOT YET replies and concerning check-ins will appear here.') }}{% endfor %}</section>
+{% if closed_alerts %}<section class="card"><h2>Acknowledged or confirmed alerts</h2>{% for a in closed_alerts %}{{ alert_card(a) }}{% endfor %}</section>{% endif %}
+<section class="card"><h2>What each alert means</h2>
+<div class="health-row"><span>{{ labels.missed_response }}</span><span>The response window closed with no reply. Not proof that medicine was not taken.</span></div>
+<div class="health-row"><span>{{ labels.not_yet }}</span><span>The patient replied NOT YET, so the dose is still open. This is a recorded patient reply, not a confirmed missed dose.</span></div>
+<div class="health-row"><span>{{ labels.concerning_health }}</span><span>The patient replied WORSE or NEED HELP. SAHAYAK cannot diagnose; contact them and seek medical advice if needed.</span></div>
+</section>{% endblock %}
